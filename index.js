@@ -5,27 +5,27 @@ const fsp = fs.promises;
 
 const csv=require('csvtojson')
 
-const upsert = async (knexOrTableName, { where, update, create }) => {
-  const knexObj =
-    typeof knexOrTableName === "string"
-      ? knex(knexOrTableName)
-      : knexOrTableName;
+// const upsert = async (knexOrTableName, { where, update, create }) => {
+//   const knexObj =
+//     typeof knexOrTableName === "string"
+//       ? knex(knexOrTableName)
+//       : knexOrTableName;
 
-  return knexObj.where(where).then(result => {
-    if (result.length > 0 && update) {
-      return knexObj
-        .where(where)
-        .update(update, ["*"])
-        .then(returnData => {
-          return returnData[0];
-        });
-    } else if (result.length === 0 && create) {
-      return knexObj.insert(create, ["*"]).then(returnData => {
-        return returnData[0];
-      });
-    }
-  });
-};
+//   return knexObj.where(where).then(result => {
+//     if (result.length > 0 && update) {
+//       return knexObj
+//         .where(where)
+//         .update(update, ["*"])
+//         .then(returnData => {
+//           return returnData[0];
+//         });
+//     } else if (result.length === 0 && create) {
+//       return knexObj.insert(create, ["*"]).then(returnData => {
+//         return returnData[0];
+//       });
+//     }
+//   });
+// };
 
 const normalizeKeysForDatabase = (obj) => {
   return Object.keys(obj).reduce((acc, key) => {
@@ -34,19 +34,77 @@ const normalizeKeysForDatabase = (obj) => {
   }, {});
 }
 
+const upsert = (table, object, constraint)=> {
+  
+  const insert = knex(table).insert(object);
+  const update = knex.queryBuilder().update(object);
+  const q = knex.raw(`? ON CONFLICT ("${constraint}") DO ? returning *`, [insert, update]).get('rows').get(0);
+  console.log('q')
+  console.log('update', update.toSQL())
+  return knex.raw(`? ON CONFLICT ("${constraint}") DO ? returning *`, [insert, update]).get('rows').get(0);
+};
+
+// const upsert = async (knexOrTableName, { where, update, create }) => {
+//   const knexObj =
+//     typeof knexOrTableName === "string"
+//       ? knex(knexOrTableName)
+//       : knexOrTableName;
+//   const insertStatement = knexObj
+//       .insert(create)
+//       .toString();
+//   const updateStatement = knexObj
+//       .update(update)
+//       .toString();
+
+//       console.log('insertStatement', insertStatement)
+
+//       return insertStatement;
+
+//   // const keepValues = columnsToRetain.map((c) => `"${c}"=${tableName}."${c}"`).join(',');
+//   // const conflictColumns = conflictOn.map((c) => `"${c.toString()}"`).join(',');
+//   // let insertOrUpdateQuery = `${insert} ON CONFLICT( ${conflictColumns}) DO ${update}`;
+//   // insertOrUpdateQuery = keepValues ? `${insertOrUpdateQuery}, ${keepValues}` : insertOrUpdateQuery;
+//   // insertOrUpdateQuery = insertOrUpdateQuery.replace(`update "${tableName}"`, 'update');
+//   // insertOrUpdateQuery = insertOrUpdateQuery.replace(`"${tableName}"`, tableName);
+//   // return Promise.resolve(knex.raw(insertOrUpdateQuery));
+// };
+
+// const upsert = (t, tableName, columnsToRetain, conflictOn) => {
+//   const insert = knex(tableName)
+//       .insert(t)
+//       .toString();
+//   const update = knex(tableName)
+//       .update(t)
+//       .toString();
+//   const keepValues = columnsToRetain.map((c) => `"${c}"=${tableName}."${c}"`).join(',');
+//   const conflictColumns = conflictOn.map((c) => `"${c.toString()}"`).join(',');
+//   let insertOrUpdateQuery = `${insert} ON CONFLICT( ${conflictColumns}) DO ${update}`;
+//   insertOrUpdateQuery = keepValues ? `${insertOrUpdateQuery}, ${keepValues}` : insertOrUpdateQuery;
+//   insertOrUpdateQuery = insertOrUpdateQuery.replace(`update "${tableName}"`, 'update');
+//   insertOrUpdateQuery = insertOrUpdateQuery.replace(`"${tableName}"`, tableName);
+//   return Promise.resolve(knex.raw(insertOrUpdateQuery));
+// };
+
+//INSERT INTO table_name(column_list) VALUES(value_list)
+// ON CONFLICT target action;
 async function main() {
-  const csvFilePath='./database/data/RealPropertyGeneralMailingInformation.csv'
+  const csvFilePath='./database/data/RealPropertyGeneralMailingInformation2.csv'
 // Async / await usage
   csv()
   .fromFile(csvFilePath)
   .subscribe(async (csvLine)=>{ 
     // csvLine =>  "1,2,3" and "4,5,6"
     try {
-      const recordToUpsert = normalizeKeysForDatabase(csvLine)
-      recordToUpsert.legacyId = recordToUpsert.propertyId;
-      delete recordToUpsert.propertyId;
-      
-      const inserted =  await upsert('properties', { where: { parcelId: recordToUpsert.parcelId }, update: recordToUpsert, create: recordToUpsert} )
+      const recordToUpsert = {
+        ParcelID: csvLine.ParcelID,
+        LegacyID: csvLine.PropertyID,
+        JSONDoc: csvLine }
+      // console.log(csvLine)
+      // recordToUpsert.legacyId = recordToUpsert.propertyId;
+      // delete recordToUpsert.propertyId;
+     // console.log('recordToUpsert', recordToUpsert)
+      const inserted =  await upsert('properties', recordToUpsert, 'ParcelID'); // { where: { ParcelID: recordToUpsert.ParcelID }, update: recordToUpsert, create: recordToUpsert} )
+      // const inserted =  await upsert(recordToUpsert, 'properties', recordToUpsert, { ParcelID: recordToUpsert.ParcelID } )
       
     } catch (e) {
       console.log('er', e)

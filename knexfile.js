@@ -1,17 +1,37 @@
 // require("dotenv").config();
 module.exports = {
+
   development: {
-    client: "sqlite3",
+    client: "pg",
     connection: {
-      filename: "./database/mydb.sqlite"
+      host: 'localhost',
+      port: '54320',
+      user: 'admin',
+      password: 'admin',
+      database: 'stlucie'
     },
     useNullAsDefault: true,
-    debug: false,
+    debug: true,
     migrations: {
       tableName: "_knex_migrations",
       directory: "./database/migrations"
+    },
+    seeds: {
+      directory: "./database/seeds"
     }
-  },
+  },  
+  // development: {
+  //   client: "sqlite3",
+  //   connection: {
+  //     filename: "./database/mydb.sqlite"
+  //   },
+  //   useNullAsDefault: true,
+  //   debug: false,
+  //   migrations: {
+  //     tableName: "_knex_migrations",
+  //     directory: "./database/migrations"
+  //   }
+  // },
 
 
   // test: {
