@@ -9,7 +9,7 @@
     "knex": "knex"
   },
   "dependencies": {
-    "knex": "^0.19.5",
+    "knex": "^2.4.0",
     "puppeteer": "^1.20.0",
     "sqlite3": "^4.1.0"
   },
